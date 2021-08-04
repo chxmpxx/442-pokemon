@@ -1,0 +1,124 @@
+<template>
+  <div>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name (EN)</th>
+                <th>Name (JP)</th>
+                <th>Type</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="(poke, index) in pokemons" :key="index">
+                <td>{{ index+1 }}</td>
+                <td v-if="index !== editIndex">{{ poke.name }}</td>
+                <td v-if="index === editIndex">
+                    <input type="text" v-model="form.name">
+                </td>
+
+                <td v-if="index !== editIndex">{{ poke.name_jp }}</td>
+                <td v-if="index === editIndex">
+                    <input type="text" v-model="form.name_jp">
+                </td>
+
+                <td v-if="index !== editIndex">
+                    {{ poke.pokemon_types.map(it => it.name).join(', ') }}
+                </td>
+                <td v-if="index === editIndex">
+                    <input type="text" v-model="form.pokemon_types">
+                </td>
+
+                <td v-if="index !== editIndex">
+                    <button @click="openForm(index, poke)">Click to Edit</button>
+                </td>
+                <td v-if="index === editIndex">
+                    <button @click="editPokemon">Update Pokemon</button>
+                    <button @click="closeForm">Cancel</button>
+                </td>
+                
+                <!-- <td v-if="isAuthen()">
+                    <router-link : to="{name : 'Poked'}"> </router-link>
+                </td> -->
+            </tr>
+        </tbody>
+    </table>
+  </div>
+</template>
+
+<script>
+import PokedexApiStore from '@/store/PokedexApi'
+import AuthUser from '@/store/AuthUser'
+
+export default {
+    data(){
+        return{
+            pokemons: [],
+
+            // สำหรับฟอร์มแก้ไข
+            editIndex: -1,   //เริ่มต้นมาไม่มีค่า
+            form:{
+                id:'',
+                name: '',
+                name_jp:'',
+                pokemon_types: ''
+            }
+        }
+    },
+
+    created(){
+        //ใช้ this เรียกเมธอทใน component ตัวเอง
+        this.fetchPokemon()
+    },
+
+    methods: {
+        async fetchPokemon(){
+            //เรียก action ใน store ใช้ ชื่อStore.dispatch('ชื่อaction')
+            await PokedexApiStore.dispatch('fetchPokemon')
+
+            //เรียก getters ใน store
+            this.pokemons = PokedexApiStore.getters.pokemons
+        },
+        openForm(index, pokemon){
+            console.log('index', index)
+            console.log('pokemon', pokemon)
+            this.editIndex = index
+            let cloned = JSON.parse(JSON.stringify(pokemon))    //พาส object ไปเป็นสตริงแล้วพาสกลับมา
+            //หน้าคือฟอร์มที่จะส่ง ด้านหลังคือชื่อจาก api
+            this.form.id = cloned.id
+            this.form.name = cloned.name
+            this.form.name_jp = cloned.name_jp
+            this.form.pokemon_types = cloned.pokemon_types.map(it => it.name).join(', ') // เป็นอาร์เรย์ เพราะงั้นต้องใช้ join เปลี่ยนเป็นสตริง
+        },
+        closeForm(){
+            this.editIndex = -1
+            this.form = {
+                id:'',
+                name: '',
+                name_jp:'',
+                pokemon_types: ''
+            }
+        },
+        async editPokemon(){
+            let payload = {
+                index: this.editIndex,
+                id: this.form.id,
+                name: this.form.name,
+                name_jp: this.form.name_jp,
+                pokemon_types: this.form.pokemon_types.split(',').map((item) => item.trim())
+            }
+            console.log(payload)
+            //call action in store use dispatch
+            await PokedexApiStore.dispatch("editPokemon", payload)
+            this.closeForm()
+            this.fetchPokemon()
+        },
+    }
+
+}
+</script>
+
+<style>
+
+</style>
